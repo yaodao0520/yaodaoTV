@@ -3,47 +3,49 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // 检查路径是否以 /proxy/ 开头
     if (url.pathname.startsWith("/proxy/")) {
-      // 提取 /proxy/ 后面的真实目标 URL
-      // 例如，如果请求是 /proxy/https://example.com/api ，目标 URL 就是 https://example.com/api
-      let targetUrl = url.pathname.substring("/proxy/".length );
-
-      // 如果原始请求有查询参数，也附加到目标 URL 上
+      let encodedTargetUrlPart = url.pathname.substring("/proxy/".length);
       if (url.search) {
-        targetUrl += url.search;
+        encodedTargetUrlPart += url.search;
       }
 
-      // 验证目标 URL 是否以 http:// 或 https:// 开头
+      let targetUrl;
+      try {
+        targetUrl = decodeURIComponent(encodedTargetUrlPart);
+      } catch (e) {
+        return new Response(`Failed to decode target URL part: ${encodedTargetUrlPart}. Error: ${e.message}`, { status: 400 });
+      }
+
       if (!targetUrl.startsWith("http://" ) && !targetUrl.startsWith("https://" )) {
-        return new Response("Invalid target URL in proxy request. Must start with http:// or https://.", { status: 400 } );
+        return new Response(`Invalid target URL after decoding: "${targetUrl}". It must start with http:// or https://. Original encoded part: "${encodedTargetUrlPart}"`, { status: 400 } );
       }
 
       try {
-        // 创建一个新的请求到目标 URL，复制原始请求的方法、头部等信息
-        // 注意：为了简单起见，这里没有完全复制所有头部，实际应用中可能需要更精细的处理
         const proxyRequest = new Request(targetUrl, {
           method: request.method,
-          headers: request.headers, // 将原始请求的头部传递过去
+          headers: request.headers,
           body: request.body,
-          redirect: "follow" // 遵循重定向
+          redirect: "follow"
         });
 
-        // 发起代理请求
         const response = await fetch(proxyRequest);
+        // Create a new response to ensure correct headers for CORS if needed, and to make it mutable.
+        const newHeaders = new Headers(response.headers);
+        newHeaders.set("Access-Control-Allow-Origin", "*"); // Allow all origins for simplicity
+        newHeaders.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        newHeaders.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-        // 返回从目标 API 收到的响应
-        // 需要确保跨域头部 (CORS) 被正确处理，如果目标 API 没有设置，这里可能需要添加
-        // 为简单起见，我们直接返回响应，但实际中可能需要 new Response(response.body, { headers: newHeaders }) 来修改头部
-        return response;
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: newHeaders
+        });
 
       } catch (error) {
-        return new Response(`Proxy request failed: ${error.message}`, { status: 500 });
+        return new Response(`Proxy request to "${targetUrl}" failed: ${error.message}`, { status: 502 }); // 502 Bad Gateway for upstream errors
       }
     }
 
-    // 如果请求路径不是 /proxy/，则正常提供静态资源
-    // env.ASSETS.fetch 会处理静态文件的服务
     return env.ASSETS.fetch(request);
   }
 };
