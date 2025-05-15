@@ -466,7 +466,7 @@ function playFromHistory(url, title, episodeIndex, playbackPosition = 0) {
             // 如果找到了匹配的历史记录，尝试获取该条目的集数数据
             if (historyItem && historyItem.episodes && Array.isArray(historyItem.episodes)) {
                 episodesList = historyItem.episodes;
-                console.yaodaoTV(`从历史记录找到视频 ${title} 的集数数据:`, episodesList.length);
+                console.log(`从历史记录找到视频 ${title} 的集数数据:`, episodesList.length);
             }
         }
         
@@ -476,7 +476,7 @@ function playFromHistory(url, title, episodeIndex, playbackPosition = 0) {
                 const storedEpisodes = JSON.parse(localStorage.getItem('currentEpisodes') || '[]');
                 if (storedEpisodes.length > 0) {
                     episodesList = storedEpisodes;
-                    console.yaodaoTV(`使用localStorage中的集数数据:`, episodesList.length);
+                    console.log(`使用localStorage中的集数数据:`, episodesList.length);
                 }
             } catch (e) {
                 console.error('解析currentEpisodes失败:', e);
@@ -486,7 +486,7 @@ function playFromHistory(url, title, episodeIndex, playbackPosition = 0) {
         // 将剧集列表保存到localStorage，避免过长的URL
         if (episodesList.length > 0) {
             localStorage.setItem('currentEpisodes', JSON.stringify(episodesList));
-            console.yaodaoTV(`已将剧集列表保存到localStorage，共 ${episodesList.length} 集`);
+            console.log(`已将剧集列表保存到localStorage，共 ${episodesList.length} 集`);
         }
         // 构造带播放进度参数的URL
         const positionParam = `&position=${Math.floor(playbackPosition || 0)}`;
@@ -553,7 +553,7 @@ function addToViewingHistory(videoInfo) {
                 if (!existingItem.episodes || 
                     !Array.isArray(existingItem.episodes) || 
                     existingItem.episodes.length !== videoInfo.episodes.length) {
-                    console.yaodaoTV(`更新 "${videoInfo.title}" 的剧集数据: ${videoInfo.episodes.length}集`);
+                    console.log(`更新 "${videoInfo.title}" 的剧集数据: ${videoInfo.episodes.length}集`);
                     existingItem.episodes = [...videoInfo.episodes]; // 使用深拷贝
                 }
             }
@@ -571,7 +571,7 @@ function addToViewingHistory(videoInfo) {
             // 确保episodes字段是一个数组
             if (videoInfo.episodes && Array.isArray(videoInfo.episodes)) {
                 newItem.episodes = [...videoInfo.episodes]; // 使用深拷贝
-                console.yaodaoTV(`保存新视频 "${videoInfo.title}" 的剧集数据: ${videoInfo.episodes.length}集`);
+                console.log(`保存新视频 "${videoInfo.title}" 的剧集数据: ${videoInfo.episodes.length}集`);
             } else {
                 // 如果没有提供episodes，初始化为空数组
                 newItem.episodes = [];
